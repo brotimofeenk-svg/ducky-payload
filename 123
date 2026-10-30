@@ -1,0 +1,52 @@
+# --- 1. Настройка окна (на весь экран, без кнопок закрытия) ---
+Add-Type -Name Window -Namespace Console -MemberDefinition '
+[DllImport("Kernel32.dll")] public static extern IntPtr GetConsoleWindow();
+[DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, Int32 nCmdShow);
+[DllImport("user32.dll")] public static extern bool SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+[DllImport("user32.dll")] public static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+'
+$handle = [Console.Window]::GetConsoleWindow()
+# Разворачиваем на весь экран (3 = Maximize)
+[Console.Window]::ShowWindow($handle, 3) 
+# Убираем крестик закрытия
+$style = [Console.Window]::GetWindowLong($handle, -16)
+[Console.Window]::SetWindowLong($handle, -16, $style -band -bnot 0x80000)
+
+# --- 2. Настройка цветов и внешнего вида ---
+$Host.UI.RawUI.WindowTitle = "SYSTEM LOCKED"
+$Host.UI.RawUI.BackgroundColor = "Black"
+$Host.UI.RawUI.ForegroundColor = "Red"
+Clear-Host
+[Console]::CursorVisible = $false
+
+# --- 3. Основной цикл ---
+while ($true) {
+    Clear-Host
+    $width = $Host.UI.RawUI.WindowSize.Width
+    $height = $Host.UI.RawUI.WindowSize.Height
+    
+    # Центрируем текст
+    $msg = "СИСТЕМА ЗАБЛОКИРОВАНА. ВВЕДИТЕ КОД:"
+    $pad = [math]::Floor(($width - $msg.Length) / 2)
+    
+    # Выводим текст по центру экрана
+    Write-Host ("`n" * [math]::Floor($height / 2 - 2))
+    Write-Host (" " * $pad) -NoNewline
+    Write-Host $msg -ForegroundColor Red -BackgroundColor Black
+    
+    Write-Host ("`n`n")
+    Write-Host (" " * ($pad + 10)) -NoNewline
+    
+    # Запрашиваем ввод (пароль не будет отображаться звездочками, чтобы было страшнее)
+    $input = Read-Host
+    
+    if ($input -eq "123") {
+        [Console]::CursorVisible = $true
+        Write-Host "`nКод верный. Разблокировка..." -ForegroundColor Green
+        Start-Sleep -Seconds 1
+        break # Выход из цикла
+    } else {
+        Write-Host "`nДОСТУП ЗАПРЕЩЕН!" -ForegroundColor White -BackgroundColor Red
+        Start-Sleep -Seconds 1
+    }
+}
