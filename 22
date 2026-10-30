@@ -1,228 +1,128 @@
-[System.Windows.Forms.Application]::EnableVisualStyles()
-Add-Type -AssemblyName System.Windows.Forms
-Add-Type -AssemblyName System.Drawing
+$csharpCode = @"
+using System;
+using System.Drawing;
+using System.Windows.Forms;
 
-$form = New-Object System.Windows.Forms.Form
-$form.FormBorderStyle = 'None'
-$form.WindowState = 'Maximized'
-$form.TopMost = $true
-$form.BackColor = [System.Drawing.Color]::Black
-$form.StartPosition = 'Manual'
-$form.Bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
-$form.DoubleBuffered = $true
+public class RansomMenu : Form
+{
+    private Label timerLabel;
+    private TextBox inputBox;
+    private Panel boxPanel;
+    private Label sysInfo;
 
-# Текст кода
-$lbl = New-Object System.Windows.Forms.Label
-$lbl.Font = New-Object System.Drawing.Font("Consolas", 16, [System.Drawing.FontStyle]::Bold)
-$lbl.ForeColor = [System.Drawing.Color]::Magenta
-$lbl.BackColor = [System.Drawing.Color]::Black
-$lbl.AutoSize = $true
-$lbl.Location = New-Object System.Drawing.Point(20, 20)
-$form.Controls.Add($lbl)
+    public RansomMenu()
+    {
+        this.FormBorderStyle = FormBorderStyle.None;
+        this.WindowState = FormWindowState.Maximized;
+        this.TopMost = true;
+        this.BackColor = Color.Black;
+        this.DoubleBuffered = true;
 
-$script:fakeCode = @(
-    "Connecting to remote server...",
-    "Bypassing firewall... OK",
-    "Injecting payload into memory...",
-    "0x7FFA2C4F: MOV EAX, [EBX+ECX*4]",
-    "Encrypting C:\Users\Documents...",
-    "Encrypting C:\Users\Pictures...",
-    "Encrypting C:\Users\Desktop...",
-    "File system locked.",
-    "Waiting for ransom payment..."
-)
+        // Таймер сверху справа
+        timerLabel = new Label();
+        timerLabel.Text = "До самоуничтожения:\n47:55:22";
+        timerLabel.Font = new Font("Consolas", 14, FontStyle.Bold);
+        timerLabel.ForeColor = Color.Magenta;
+        timerLabel.BackColor = Color.Black;
+        timerLabel.AutoSize = true;
+        timerLabel.TextAlign = ContentAlignment.TopRight;
+        this.Controls.Add(timerLabel);
 
-$script:lineIndex = 0
-$timerCode = New-Object System.Windows.Forms.Timer
-$timerCode.Interval = 15
+        // Центральная панель
+        boxPanel = new Panel();
+        boxPanel.Size = new Size(800, 250);
+        boxPanel.BackColor = Color.Black;
+        boxPanel.BorderStyle = BorderStyle.None;
+        this.Controls.Add(boxPanel);
 
-$timerCode.Add_Tick({
-    if ($script:lineIndex -lt $script:fakeCode.Count) {
-        $lbl.Text += $script:fakeCode[$script:lineIndex] + "`n"
-        $script:lineIndex++
-    } else {
-        $timerCode.Stop()
-        
-        # Вспышка
-        $script:flashCount = 0
-        $timerFlash = New-Object System.Windows.Forms.Timer
-        $timerFlash.Interval = 80
-        $script:timerFlash = $timerFlash
-        
-        $timerFlash.Add_Tick({
-            if ($script:flashCount -lt 6) {
-                if ($script:flashCount % 2 -eq 0) {
-                    $form.BackColor = [System.Drawing.Color]::Magenta
-                    $lbl.Visible = $false
-                } else {
-                    $form.BackColor = [System.Drawing.Color]::Black
-                    $lbl.Visible = $true
-                }
-                $script:flashCount++
-            } else {
-                $script:timerFlash.Stop()
-                
-                # Показ черепа
-                $form.BackColor = [System.Drawing.Color]::Magenta
-                $lbl.Visible = $false
-                $script:showSkull = $true
-                $form.Invalidate()
-                
-                $countLbl = New-Object System.Windows.Forms.Label
-                $countLbl.Font = New-Object System.Drawing.Font("Consolas", 20, [System.Drawing.FontStyle]::Bold)
-                $countLbl.ForeColor = [System.Drawing.Color]::Black
-                $countLbl.BackColor = [System.Drawing.Color]::Magenta
-                $countLbl.AutoSize = $true
-                $countLbl.Location = New-Object System.Drawing.Point(($form.Width / 2) - 300, $form.Height - 150)
-                $form.Controls.Add($countLbl)
-                
-                $script:countLbl = $countLbl
-                $script:count = 10
-                $timerCountdown = New-Object System.Windows.Forms.Timer
-                $timerCountdown.Interval = 1000
-                $script:timerCountdown = $timerCountdown
-                
-                $timerCountdown.Add_Tick({
-                    $script:count--
-                    if ($script:count -le 0) {
-                        $script:timerCountdown.Stop()
-                        
-                        # ПЕРЕХОД В МЕНЮ
-                        $script:showSkull = $false
-                        $script:showMenu = $true
-                        $form.BackColor = [System.Drawing.Color]::Black
-                        $script:countLbl.Visible = $false
-                        $form.Invalidate()
-                        Show-Menu
-                    } else {
-                        $script:countLbl.Text = "ENCRYPTED. KEY DOWNLOAD: $($script:count)s"
-                    }
-                })
-                $script:countLbl.Text = "ENCRYPTED. KEY DOWNLOAD: $($script:count)s"
-                $timerCountdown.Start()
-            }
-        })
-        $timerFlash.Start()
+        // Отрисовка розовой рамки
+        boxPanel.Paint += (s, e) => {
+            Pen p = new Pen(Color.Magenta, 2);
+            e.Graphics.DrawRectangle(p, 0, 0, boxPanel.Width - 1, boxPanel.Height - 1);
+            e.Graphics.DrawLine(p, 0, 160, boxPanel.Width, 160); // Линия над полем ввода
+        };
+
+        // Текст внутри рамки
+        Label textLbl = new Label();
+        textLbl.Text = "Ваш компьютер заблокирован, а все имеющиеся диски и файлы на них зашифрованы\n" +
+                       "вирусом-шифровальщиком. Любые действия, связанные с попыткой\n" +
+                       "снятия блокировки нанесут непоправимый вред Вашему компьютеру и приведут к\n" +
+                       "потере всех важных файлов без возможности их восстановления. При попытке снять\n" +
+                       "блокировку все ваши данные будут отправлены в сеть и будет подана рекурсивная\n" +
+                       "нагрузка на ваш процессор, что приведет к выходу его из строя.";
+        textLbl.Font = new Font("Consolas", 10, FontStyle.Bold);
+        textLbl.ForeColor = Color.White;
+        textLbl.Location = new Point(10, 10);
+        textLbl.Size = new Size(780, 140);
+        boxPanel.Controls.Add(textLbl);
+
+        // Текст над полем ввода
+        Label inputLbl = new Label();
+        inputLbl.Text = "Введите код разблокировки:";
+        inputLbl.Font = new Font("Consolas", 12, FontStyle.Bold);
+        inputLbl.ForeColor = Color.White;
+        inputLbl.Location = new Point(10, 170);
+        inputLbl.Size = new Size(300, 20);
+        boxPanel.Controls.Add(inputLbl);
+
+        // Поле ввода (Розовое, как на скрине)
+        inputBox = new TextBox();
+        inputBox.Font = new Font("Consolas", 14, FontStyle.Bold);
+        inputBox.BackColor = Color.Magenta;
+        inputBox.ForeColor = Color.Black;
+        inputBox.BorderStyle = BorderStyle.None;
+        inputBox.Location = new Point(10, 195);
+        inputBox.Size = new Size(780, 30);
+        inputBox.KeyDown += InputBox_KeyDown;
+        boxPanel.Controls.Add(inputBox);
+
+        // Инфо о системе слева снизу
+        sysInfo = new Label();
+        sysInfo.Text = "Current PC: " + Environment.MachineName + "\n" +
+                       "Windows: " + Environment.OSVersion.VersionString + "\n" +
+                       "IP: 192.168.1.x";
+        sysInfo.Font = new Font("Consolas", 10);
+        sysInfo.ForeColor = Color.DarkGray;
+        sysInfo.AutoSize = true;
+        this.Controls.Add(sysInfo);
+
+        // Выравнивание при старте
+        this.Resize += (s, e) => {
+            timerLabel.Location = new Point(this.Width - 250, 20);
+            boxPanel.Location = new Point((this.Width - boxPanel.Width) / 2, (this.Height - boxPanel.Height) / 2);
+            sysInfo.Location = new Point(20, this.Height - 80);
+        };
     }
-})
 
-# Функция отрисовки черепа
-$form.Add_Paint({
-    param($sender, $e)
-    if ($script:showSkull) {
-        $pixelSize = 20
-        $skullGrid = @(
-            "0000000000000000", "0000111111110000", "0001111111111000",
-            "0011111111111100", "0111111111111110", "1111111111111111",
-            "1111000111100011", "1110000111000011", "1110000111000011",
-            "1111111111111111", "1111111111111111", "1111110000111111",
-            "1111110000111111", "0111111111111110", "0011111111111100",
-            "0001111111111000", "0000111111110000", "0000011111100000",
-            "0000001111000000", "0000000110000000"
-        )
-        $brush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::Black)
-        $offsetX = ($form.Width / 2) - (16 * $pixelSize / 2)
-        $offsetY = ($form.Height / 2) - (20 * $pixelSize / 2) - 50
-        for ($y = 0; $y -lt $skullGrid.Count; $y++) {
-            for ($x = 0; $x -lt $skullGrid[$y].Length; $x++) {
-                if ($skullGrid[$y][$x] -eq '1') {
-                    $e.Graphics.FillRectangle($brush, ($offsetX + ($x * $pixelSize)), ($offsetY + ($y * $pixelSize)), $pixelSize, $pixelSize)
-                }
+    protected override void OnShown(EventArgs e)
+    {
+        base.OnShown(e);
+        // Принудительно ставим фокус на поле ввода
+        inputBox.Focus();
+        this.ActiveControl = inputBox;
+    }
+
+    private void InputBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.KeyCode == Keys.Enter)
+        {
+            if (inputBox.Text == "123")
+            {
+                this.Close(); // Выход
+            }
+            else
+            {
+                inputBox.Text = "";
+                inputBox.BackColor = Color.Red;
+                Timer t = new Timer();
+                t.Interval = 500;
+                t.Tick += (s, ev) => { inputBox.BackColor = Color.Magenta; t.Stop(); };
+                t.Start();
             }
         }
     }
-})
-
-# Функция создания меню (CMD Style)
-function Show-Menu {
-    # Рамка (ASCII)
-    $boxText = @"
-╔════════════════════════════════════════════════╗
-║                                                ║
-║           SYSTEM LOCKED DUE TO VIRUS           ║
-║                                                ║
-║   To unlock, enter the decryption password:    ║
-║                                                ║
-╚════════════════════════════════════════════════╝
-"@
-    $menuLbl = New-Object System.Windows.Forms.Label
-    $menuLbl.Text = $boxText
-    $menuLbl.Font = New-Object System.Drawing.Font("Consolas", 16, [System.Drawing.FontStyle]::Bold)
-    $menuLbl.ForeColor = [System.Drawing.Color]::Lime
-    $menuLbl.BackColor = [System.Drawing.Color]::Black
-    $menuLbl.AutoSize = $true
-    $menuLbl.Location = New-Object System.Drawing.Point(($form.Width / 2) - 320, ($form.Height / 2) - 200)
-    $form.Controls.Add($menuLbl)
-
-    # Таймер
-    $menuTimerLbl = New-Object System.Windows.Forms.Label
-    $menuTimerLbl.Text = "Time remaining to unlock: 20s"
-    $menuTimerLbl.Font = New-Object System.Drawing.Font("Consolas", 14, [System.Drawing.FontStyle]::Regular)
-    $menuTimerLbl.ForeColor = [System.Drawing.Color]::Red
-    $menuTimerLbl.BackColor = [System.Drawing.Color]::Black
-    $menuTimerLbl.AutoSize = $true
-    $menuTimerLbl.Location = New-Object System.Drawing.Point(($form.Width / 2) - 150, ($form.Height / 2) + 100)
-    $form.Controls.Add($menuTimerLbl)
-    
-    # Имитация приглашения CMD
-    $promptLbl = New-Object System.Windows.Forms.Label
-    $promptLbl.Text = "C:\> "
-    $promptLbl.Font = New-Object System.Drawing.Font("Consolas", 18, [System.Drawing.FontStyle]::Bold)
-    $promptLbl.ForeColor = [System.Drawing.Color]::White
-    $promptLbl.BackColor = [System.Drawing.Color]::Black
-    $promptLbl.AutoSize = $true
-    $promptLbl.Location = New-Object System.Drawing.Point(($form.Width / 2) - 150, ($form.Height / 2) + 20)
-    $form.Controls.Add($promptLbl)
-
-    # Поле ввода пароля
-    $inputTxt = New-Object System.Windows.Forms.TextBox
-    $inputTxt.Font = New-Object System.Drawing.Font("Consolas", 18, [System.Drawing.FontStyle]::Bold)
-    $inputTxt.ForeColor = [System.Drawing.Color]::White
-    $inputTxt.BackColor = [System.Drawing.Color]::Black
-    $inputTxt.BorderStyle = 'None'
-    $inputTxt.Width = 300
-    $inputTxt.PasswordChar = '*'
-    $inputTxt.Location = New-Object System.Drawing.Point(($form.Width / 2) - 60, ($form.Height / 2) + 22)
-    $form.Controls.Add($inputTxt)
-    
-    $inputTxt.Focus()
-
-    # Логика ввода
-    $inputTxt.Add_KeyDown({
-        param($sender, $e)
-        if ($e.KeyCode -eq 'Enter') {
-            if ($inputTxt.Text -eq "123") {
-                $form.Close()
-            } else {
-                $inputTxt.Clear()
-                $menuTimerLbl.Text = "ACCESS DENIED"
-                $menuTimerLbl.ForeColor = [System.Drawing.Color]::White
-                $menuTimerLbl.BackColor = [System.Drawing.Color]::Red
-                Start-Sleep -Milliseconds 500
-                $menuTimerLbl.ForeColor = [System.Drawing.Color]::Red
-                $menuTimerLbl.BackColor = [System.Drawing.Color]::Black
-            }
-        }
-    })
-
-    # Таймер меню
-    $script:menuCount = 20
-    $timerMenu = New-Object System.Windows.Forms.Timer
-    $timerMenu.Interval = 1000
-    $timerMenu.Add_Tick({
-        $script:menuCount--
-        if ($script:menuCount -le 0) {
-            $timerMenu.Stop()
-            $form.Close()
-        } else {
-            $menuTimerLbl.Text = "Time remaining to unlock: $($script:menuCount)s"
-        }
-    })
-    $timerMenu.Start()
 }
+"@
 
-$form.Add_Shown({
-    $timerCode.Start()
-})
-
-[void]$form.ShowDialog()
+Add-Type -TypeDefinition $csharpCode -ReferencedAssemblies System.Windows.Forms, System.Drawing
+[void][RansomMenu]::new().ShowDialog()
