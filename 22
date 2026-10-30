@@ -9,19 +9,17 @@ $form.BackColor = [System.Drawing.Color]::Black
 $form.StartPosition = 'Manual'
 $form.Bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
 
-# Создаем консоль (RichTextBox для цвета)
 $rtb = New-Object System.Windows.Forms.RichTextBox
-$rtb.Dock = 'Fill' # Занимает весь экран
+$rtb.Dock = 'Fill'
 $rtb.BackColor = [System.Drawing.Color]::Black
-$rtb.ForeColor = [System.Drawing.Color]::Magenta # Розовый цвет
-$rtb.Font = New-Object System.Drawing.Font("Consolas", 12, [System.Drawing.FontStyle]::Regular)
+$rtb.ForeColor = [System.Drawing.Color]::Magenta
+$rtb.Font = New-Object System.Drawing.Font("Consolas", 14, [System.Drawing.FontStyle]::Regular)
 $rtb.BorderStyle = 'None'
 $rtb.ReadOnly = $true
 $rtb.ScrollBars = 'None'
 $rtb.WordWrap = $false
 $form.Controls.Add($rtb)
 
-# Тексты для имитации кода
 $fakeCode = @(
     "Connecting to remote server 192.168.1.1...",
     "Bypassing firewall... OK",
@@ -38,9 +36,8 @@ $fakeCode = @(
     "Waiting for ransom payment..."
 )
 
-# Таймер для печати текста
 $timerCode = New-Object System.Windows.Forms.Timer
-$timerCode.Interval = 150 # Скорость печати (150 мс)
+$timerCode.Interval = 100
 $script:lineIndex = 0
 
 $timerCode.Add_Tick({
@@ -49,7 +46,6 @@ $timerCode.Add_Tick({
         $rtb.ScrollToCaret()
         $script:lineIndex++
     } else {
-        # Как только текст закончился, запускаем вторую сцену (череп)
         $timerCode.Stop()
         $rtb.Visible = $false
         
@@ -61,11 +57,9 @@ $timerCode.Add_Tick({
         $lbl.AutoSize = $true
         $form.Controls.Add($lbl)
         
-        # Центрируем череп
         $lbl.Left = ($form.Width - $lbl.Width) / 2
         $lbl.Top = ($form.Height - $lbl.Height) / 2
         
-        # Запускаем таймер отсчета для второй сцены
         $script:count = 10
         $timerCountdown = New-Object System.Windows.Forms.Timer
         $timerCountdown.Interval = 1000
@@ -85,10 +79,8 @@ $timerCode.Add_Tick({
     }
 })
 
-# Запускаем всё при старте
 $form.Add_Shown({
     $timerCode.Start()
 })
 
-# Запуск
 [void]$form.ShowDialog()
