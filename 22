@@ -1,28 +1,21 @@
-# Встраиваем C# код для создания полноценного приложения
 $code = @"
 using System;
 using System.Drawing;
 using System.Windows.Forms;
-using System.Runtime.InteropServices;
 
 public class FullScreenLock : Form
 {
-    [DllImport("user32.dll")]
-    public static extern bool BlockInput(bool fBlockIt);
-
     private TextBox txt;
     private Label lbl;
 
     public FullScreenLock()
     {
-        // Настройка окна: без рамок, черный фон, на весь экран
         this.FormBorderStyle = FormBorderStyle.None;
         this.WindowState = FormWindowState.Maximized;
         this.TopMost = true;
         this.BackColor = Color.Black;
         this.KeyPreview = true;
 
-        // Текст заголовка
         lbl = new Label();
         lbl.Text = "SYSTEM LOCKED\n\nENTER PASSWORD:";
         lbl.Font = new Font("Consolas", 32, FontStyle.Bold);
@@ -30,7 +23,6 @@ public class FullScreenLock : Form
         lbl.AutoSize = true;
         this.Controls.Add(lbl);
 
-        // Поле ввода
         txt = new TextBox();
         txt.Font = new Font("Consolas", 32, FontStyle.Bold);
         txt.ForeColor = Color.Red;
@@ -40,22 +32,18 @@ public class FullScreenLock : Form
         txt.Width = 400;
         this.Controls.Add(txt);
 
-        // Центрируем элементы
         this.Load += (s, e) => {
             lbl.Location = new Point((this.Width - lbl.Width) / 2, (this.Height / 2) - 150);
             txt.Location = new Point((this.Width - txt.Width) / 2, (this.Height / 2) + 50);
             txt.Focus();
-            BlockInput(true); // Блокируем клавиатуру и мышь системы (кроме нашего окна)
         };
 
-        // Обработка ввода
         txt.KeyDown += (s, e) => {
             if (e.KeyCode == Keys.Enter)
             {
                 if (txt.Text == "123")
                 {
-                    BlockInput(false); // Разблокируем систему
-                    Application.Exit(); // Закрываем программу
+                    Application.Exit();
                 }
                 else
                 {
@@ -75,7 +63,15 @@ public class FullScreenLock : Form
             }
         };
 
-        // Запрет закрытия через Alt+F4
+        // Перехватываем Alt+Tab и Alt+F4, чтобы нельзя было переключиться или закрыть
+        this.KeyDown += (s, e) => {
+            if (e.Alt && (e.KeyCode == Keys.Tab || e.KeyCode == Keys.F4))
+            {
+                e.SuppressKeyPress = true;
+            }
+        };
+
+        // Запрет закрытия через крестик
         this.FormClosing += (s, e) => {
             if (txt.Text != "123") e.Cancel = true;
         };
@@ -83,6 +79,5 @@ public class FullScreenLock : Form
 }
 "@
 
-# Компилируем и запускаем
 Add-Type -TypeDefinition $code -ReferencedAssemblies System.Windows.Forms, System.Drawing
 [FullScreenLock]::new().ShowDialog()
