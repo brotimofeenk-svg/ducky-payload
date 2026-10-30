@@ -9,18 +9,18 @@ $form.TopMost = $true
 $form.BackColor = [System.Drawing.Color]::Black
 $form.StartPosition = 'Manual'
 $form.Bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+$form.DoubleBuffered = $true
 
-$rtb = New-Object System.Windows.Forms.RichTextBox
-$rtb.Dock = 'Fill'
-$rtb.BackColor = [System.Drawing.Color]::Black
-$rtb.ForeColor = [System.Drawing.Color]::Magenta
-$rtb.Font = New-Object System.Drawing.Font("Consolas", 16, [System.Drawing.FontStyle]::Bold)
-$rtb.BorderStyle = 'None'
-$rtb.ReadOnly = $true
-$rtb.ScrollBars = 'None'
-$form.Controls.Add($rtb)
+# Текст кода
+$lbl = New-Object System.Windows.Forms.Label
+$lbl.Font = New-Object System.Drawing.Font("Consolas", 16, [System.Drawing.FontStyle]::Bold)
+$lbl.ForeColor = [System.Drawing.Color]::Magenta
+$lbl.BackColor = [System.Drawing.Color]::Black
+$lbl.AutoSize = $true
+$lbl.Location = New-Object System.Drawing.Point(20, 20)
+$form.Controls.Add($lbl)
 
-$fakeCode = @(
+$script:fakeCode = @(
     "Connecting to remote server...",
     "Bypassing firewall... OK",
     "Injecting payload into memory...",
@@ -34,75 +34,192 @@ $fakeCode = @(
 
 $script:lineIndex = 0
 $timerCode = New-Object System.Windows.Forms.Timer
-$timerCode.Interval = 50 # Скорость печати (было 200, стало 50)
+$timerCode.Interval = 15
 
 $timerCode.Add_Tick({
-    if ($script:lineIndex -lt $fakeCode.Count) {
-        $rtb.AppendText($fakeCode[$script:lineIndex] + "`n")
-        $rtb.ScrollToCaret()
+    if ($script:lineIndex -lt $script:fakeCode.Count) {
+        $lbl.Text += $script:fakeCode[$script:lineIndex] + "`n"
         $script:lineIndex++
     } else {
         $timerCode.Stop()
-        $rtb.Visible = $false
         
-        # Мгновенно меняем фон на розовый (цвет текста)
-        $form.BackColor = [System.Drawing.Color]::Magenta
+        # Вспышка
+        $script:flashCount = 0
+        $timerFlash = New-Object System.Windows.Forms.Timer
+        $timerFlash.Interval = 80
+        $script:timerFlash = $timerFlash
         
-        # Пиксельный череп
-        $skull = @"
-             ▄▄▄▄▄▄▄▄▄
-           ▄███████████▄
-          ███████████████
-          ███▀▀       ▀▀███
-          ██   ▄     ▄   ██
-          ██  ███   ███  ██
-          ██   ▀     ▀   ██
-          ████▄       ▄████
-           ████   ▀   ████
-            ████     ████
-             ████▄ ▄████
-              ▀███████▀
-"@
-        
-        $lbl = New-Object System.Windows.Forms.Label
-        $lbl.Text = "$skull`n`nSYSTEM INFECTED. FILES ENCRYPTED.`nKey download: 10s"
-        $lbl.Font = New-Object System.Drawing.Font("Consolas", 20, [System.Drawing.FontStyle]::Bold)
-        $lbl.ForeColor = [System.Drawing.Color]::Black # Черный текст на розовом фоне
-        $lbl.BackColor = [System.Drawing.Color]::Transparent
-        $lbl.AutoSize = $true
-        $form.Controls.Add($lbl)
-        
-        $lbl.Left = ($form.Width - $lbl.Width) / 2
-        $lbl.Top = ($form.Height - $lbl.Height) / 2
-        
-        $script:count = 10
-        $timerCountdown = New-Object System.Windows.Forms.Timer
-        $timerCountdown.Interval = 1000
-        $script:timerCountdown = $timerCountdown
-        $script:lbl = $lbl
-        $script:skullText = $skull
-        
-        $timerCountdown.Add_Tick({
-            $script:count--
-            if ($script:count -le 0) {
-                $script:timerCountdown.Stop()
-                $script:lbl.Text = "$($script:skullText)`n`nJOKE! :) NOTHING IS ENCRYPTED."
-                $script:lbl.ForeColor = [System.Drawing.Color]::White # Белый текст для контраста
-                
-                $script:timerClose = New-Object System.Windows.Forms.Timer
-                $script:timerClose.Interval = 3000
-                $script:timerClose.Add_Tick({
-                    $script:timerClose.Stop()
-                    $form.Close()
-                })
-                $script:timerClose.Start()
+        $timerFlash.Add_Tick({
+            if ($script:flashCount -lt 6) {
+                if ($script:flashCount % 2 -eq 0) {
+                    $form.BackColor = [System.Drawing.Color]::Magenta
+                    $lbl.Visible = $false
+                } else {
+                    $form.BackColor = [System.Drawing.Color]::Black
+                    $lbl.Visible = $true
+                }
+                $script:flashCount++
             } else {
-                $script:lbl.Text = "$($script:skullText)`n`nSYSTEM INFECTED. FILES ENCRYPTED.`nKey download: $($script:count)s"
+                $script:timerFlash.Stop()
+                
+                # Показ черепа
+                $form.BackColor = [System.Drawing.Color]::Magenta
+                $lbl.Visible = $false
+                $script:showSkull = $true
+                $form.Invalidate()
+                
+                $countLbl = New-Object System.Windows.Forms.Label
+                $countLbl.Font = New-Object System.Drawing.Font("Consolas", 20, [System.Drawing.FontStyle]::Bold)
+                $countLbl.ForeColor = [System.Drawing.Color]::Black
+                $countLbl.BackColor = [System.Drawing.Color]::Magenta
+                $countLbl.AutoSize = $true
+                $countLbl.Location = New-Object System.Drawing.Point(($form.Width / 2) - 300, $form.Height - 150)
+                $form.Controls.Add($countLbl)
+                
+                $script:countLbl = $countLbl
+                $script:count = 10
+                $timerCountdown = New-Object System.Windows.Forms.Timer
+                $timerCountdown.Interval = 1000
+                $script:timerCountdown = $timerCountdown
+                
+                $timerCountdown.Add_Tick({
+                    $script:count--
+                    if ($script:count -le 0) {
+                        $script:timerCountdown.Stop()
+                        
+                        # ПЕРЕХОД В МЕНЮ
+                        $script:showSkull = $false
+                        $script:showMenu = $true
+                        $form.BackColor = [System.Drawing.Color]::Black
+                        $script:countLbl.Visible = $false
+                        $form.Invalidate()
+                        Show-Menu
+                    } else {
+                        $script:countLbl.Text = "ENCRYPTED. KEY DOWNLOAD: $($script:count)s"
+                    }
+                })
+                $script:countLbl.Text = "ENCRYPTED. KEY DOWNLOAD: $($script:count)s"
+                $timerCountdown.Start()
             }
         })
-        $timerCountdown.Start()
+        $timerFlash.Start()
     }
 })
+
+# Функция отрисовки черепа
+$form.Add_Paint({
+    param($sender, $e)
+    if ($script:showSkull) {
+        $pixelSize = 20
+        $skullGrid = @(
+            "0000000000000000", "0000111111110000", "0001111111111000",
+            "0011111111111100", "0111111111111110", "1111111111111111",
+            "1111000111100011", "1110000111000011", "1110000111000011",
+            "1111111111111111", "1111111111111111", "1111110000111111",
+            "1111110000111111", "0111111111111110", "0011111111111100",
+            "0001111111111000", "0000111111110000", "0000011111100000",
+            "0000001111000000", "0000000110000000"
+        )
+        $brush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::Black)
+        $offsetX = ($form.Width / 2) - (16 * $pixelSize / 2)
+        $offsetY = ($form.Height / 2) - (20 * $pixelSize / 2) - 50
+        for ($y = 0; $y -lt $skullGrid.Count; $y++) {
+            for ($x = 0; $x -lt $skullGrid[$y].Length; $x++) {
+                if ($skullGrid[$y][$x] -eq '1') {
+                    $e.Graphics.FillRectangle($brush, ($offsetX + ($x * $pixelSize)), ($offsetY + ($y * $pixelSize)), $pixelSize, $pixelSize)
+                }
+            }
+        }
+    }
+})
+
+# Функция создания меню (CMD Style)
+function Show-Menu {
+    # Рамка (ASCII)
+    $boxText = @"
+╔════════════════════════════════════════════════╗
+║                                                ║
+║           SYSTEM LOCKED DUE TO VIRUS           ║
+║                                                ║
+║   To unlock, enter the decryption password:    ║
+║                                                ║
+╚════════════════════════════════════════════════╝
+"@
+    $menuLbl = New-Object System.Windows.Forms.Label
+    $menuLbl.Text = $boxText
+    $menuLbl.Font = New-Object System.Drawing.Font("Consolas", 16, [System.Drawing.FontStyle]::Bold)
+    $menuLbl.ForeColor = [System.Drawing.Color]::Lime
+    $menuLbl.BackColor = [System.Drawing.Color]::Black
+    $menuLbl.AutoSize = $true
+    $menuLbl.Location = New-Object System.Drawing.Point(($form.Width / 2) - 320, ($form.Height / 2) - 200)
+    $form.Controls.Add($menuLbl)
+
+    # Таймер
+    $menuTimerLbl = New-Object System.Windows.Forms.Label
+    $menuTimerLbl.Text = "Time remaining to unlock: 20s"
+    $menuTimerLbl.Font = New-Object System.Drawing.Font("Consolas", 14, [System.Drawing.FontStyle]::Regular)
+    $menuTimerLbl.ForeColor = [System.Drawing.Color]::Red
+    $menuTimerLbl.BackColor = [System.Drawing.Color]::Black
+    $menuTimerLbl.AutoSize = $true
+    $menuTimerLbl.Location = New-Object System.Drawing.Point(($form.Width / 2) - 150, ($form.Height / 2) + 100)
+    $form.Controls.Add($menuTimerLbl)
+    
+    # Имитация приглашения CMD
+    $promptLbl = New-Object System.Windows.Forms.Label
+    $promptLbl.Text = "C:\> "
+    $promptLbl.Font = New-Object System.Drawing.Font("Consolas", 18, [System.Drawing.FontStyle]::Bold)
+    $promptLbl.ForeColor = [System.Drawing.Color]::White
+    $promptLbl.BackColor = [System.Drawing.Color]::Black
+    $promptLbl.AutoSize = $true
+    $promptLbl.Location = New-Object System.Drawing.Point(($form.Width / 2) - 150, ($form.Height / 2) + 20)
+    $form.Controls.Add($promptLbl)
+
+    # Поле ввода пароля
+    $inputTxt = New-Object System.Windows.Forms.TextBox
+    $inputTxt.Font = New-Object System.Drawing.Font("Consolas", 18, [System.Drawing.FontStyle]::Bold)
+    $inputTxt.ForeColor = [System.Drawing.Color]::White
+    $inputTxt.BackColor = [System.Drawing.Color]::Black
+    $inputTxt.BorderStyle = 'None'
+    $inputTxt.Width = 300
+    $inputTxt.PasswordChar = '*'
+    $inputTxt.Location = New-Object System.Drawing.Point(($form.Width / 2) - 60, ($form.Height / 2) + 22)
+    $form.Controls.Add($inputTxt)
+    
+    $inputTxt.Focus()
+
+    # Логика ввода
+    $inputTxt.Add_KeyDown({
+        param($sender, $e)
+        if ($e.KeyCode -eq 'Enter') {
+            if ($inputTxt.Text -eq "123") {
+                $form.Close()
+            } else {
+                $inputTxt.Clear()
+                $menuTimerLbl.Text = "ACCESS DENIED"
+                $menuTimerLbl.ForeColor = [System.Drawing.Color]::White
+                $menuTimerLbl.BackColor = [System.Drawing.Color]::Red
+                Start-Sleep -Milliseconds 500
+                $menuTimerLbl.ForeColor = [System.Drawing.Color]::Red
+                $menuTimerLbl.BackColor = [System.Drawing.Color]::Black
+            }
+        }
+    })
+
+    # Таймер меню
+    $script:menuCount = 20
+    $timerMenu = New-Object System.Windows.Forms.Timer
+    $timerMenu.Interval = 1000
+    $timerMenu.Add_Tick({
+        $script:menuCount--
+        if ($script:menuCount -le 0) {
+            $timerMenu.Stop()
+            $form.Close()
+        } else {
+            $menuTimerLbl.Text = "Time remaining to unlock: $($script:menuCount)s"
+        }
+    })
+    $timerMenu.Start()
+}
 
 $form.Add_Shown({
     $timerCode.Start()
