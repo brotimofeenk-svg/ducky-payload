@@ -2,77 +2,46 @@ Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
 $form = New-Object System.Windows.Forms.Form
-# Делаем окно без рамок, сразу на весь экран
 $form.FormBorderStyle = 'None'
 $form.WindowState = 'Maximized'
 $form.TopMost = $true
 $form.BackColor = [System.Drawing.Color]::Black
-$form.KeyPreview = $true
-
-# Занимаем весь экран принудительно (убирает задержку анимации)
 $form.StartPosition = 'Manual'
 $form.Bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
 
-# Текст
+# Череп и текст
 $lbl = New-Object System.Windows.Forms.Label
-$lbl.Text = "SYSTEM LOCKED`n`nENTER CODE:"
-$lbl.Font = New-Object System.Drawing.Font("Consolas", 32, [System.Drawing.FontStyle]::Bold)
+$lbl.Text = "☠ ВАШ КОМПЬЮТЕР ЗАРАЖЕН ☠`n`nФайлы зашифрованы.`nСкачивание ключа расшифровки..."
+$lbl.Font = New-Object System.Drawing.Font("Consolas", 28, [System.Drawing.FontStyle]::Bold)
 $lbl.ForeColor = [System.Drawing.Color]::Red
 $lbl.BackColor = [System.Drawing.Color]::Black
 $lbl.AutoSize = $true
 $form.Controls.Add($lbl)
 
-# Поле ввода
-$txt = New-Object System.Windows.Forms.TextBox
-$txt.Font = New-Object System.Drawing.Font("Consolas", 32, [System.Drawing.FontStyle]::Bold)
-$txt.ForeColor = [System.Drawing.Color]::Red
-$txt.BackColor = [System.Drawing.Color]::Black
-$txt.BorderStyle = 'None'
-$txt.PasswordChar = '*'
-$txt.Width = 400
-$form.Controls.Add($txt)
-
-# Таймер для мигания при ошибке (чтобы окно не зависало)
+# Таймер для отсчета
 $timer = New-Object System.Windows.Forms.Timer
-$timer.Interval = 500
+$timer.Interval = 1000
+$script:count = 10
+
 $timer.Add_Tick({
-    $lbl.ForeColor = [System.Drawing.Color]::Red
-    $lbl.BackColor = [System.Drawing.Color]::Black
-    $timer.Stop()
+    $script:count--
+    if ($script:count -le 0) {
+        $timer.Stop()
+        $lbl.Text = "ШУТКА! :)`n`nНичего не зашифровано."
+        $lbl.ForeColor = [System.Drawing.Color]::Lime
+        Start-Sleep -Seconds 3
+        $form.Close()
+    } else {
+        $lbl.Text = "☠ ВАШ КОМПЬЮТЕР ЗАРАЖЕН ☠`n`nФайлы зашифрованы.`nСкачивание ключа расшифровки: $($script:count) сек."
+    }
 })
 
-# Центрируем при запуске
+# Центрируем текст при запуске
 $form.Add_Shown({
     $lbl.Left = ($form.Width - $lbl.Width) / 2
-    $lbl.Top = ($form.Height / 2) - 150
-    $txt.Left = ($form.Width - $txt.Width) / 2
-    $txt.Top = ($form.Height / 2) + 50
-    $txt.Focus()
+    $lbl.Top = ($form.Height - $lbl.Height) / 2
+    $timer.Start()
 })
 
-# Блокируем закрытие через Alt+F4
-$form.Add_FormClosing({
-    param($sender, $e)
-    if ($txt.Text -ne "123") {
-        $e.Cancel = $true
-    }
-})
-
-# Проверка пароля
-$txt.Add_KeyDown({
-    param($sender, $e)
-    if ($e.KeyCode -eq 'Enter') {
-        if ($txt.Text -eq "123") {
-            $form.Close()
-        } else {
-            $txt.Clear()
-            $lbl.Text = "ACCESS DENIED`n`nENTER CODE:"
-            $lbl.ForeColor = [System.Drawing.Color]::White
-            $lbl.BackColor = [System.Drawing.Color]::Red
-            $timer.Start()
-        }
-    }
-})
-
-# Запуск программы
+# Запуск
 [void]$form.ShowDialog()
