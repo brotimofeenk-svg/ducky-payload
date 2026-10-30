@@ -14,7 +14,7 @@ $rtb = New-Object System.Windows.Forms.RichTextBox
 $rtb.Dock = 'Fill'
 $rtb.BackColor = [System.Drawing.Color]::Black
 $rtb.ForeColor = [System.Drawing.Color]::Magenta
-$rtb.Font = New-Object System.Drawing.Font("Consolas", 14)
+$rtb.Font = New-Object System.Drawing.Font("Consolas", 16, [System.Drawing.FontStyle]::Bold)
 $rtb.BorderStyle = 'None'
 $rtb.ReadOnly = $true
 $rtb.ScrollBars = 'None'
@@ -34,7 +34,7 @@ $fakeCode = @(
 
 $script:lineIndex = 0
 $timerCode = New-Object System.Windows.Forms.Timer
-$timerCode.Interval = 200
+$timerCode.Interval = 50 # Скорость печати (было 200, стало 50)
 
 $timerCode.Add_Tick({
     if ($script:lineIndex -lt $fakeCode.Count) {
@@ -45,11 +45,30 @@ $timerCode.Add_Tick({
         $timerCode.Stop()
         $rtb.Visible = $false
         
+        # Мгновенно меняем фон на розовый (цвет текста)
+        $form.BackColor = [System.Drawing.Color]::Magenta
+        
+        # Пиксельный череп
+        $skull = @"
+             ▄▄▄▄▄▄▄▄▄
+           ▄███████████▄
+          ███████████████
+          ███▀▀       ▀▀███
+          ██   ▄     ▄   ██
+          ██  ███   ███  ██
+          ██   ▀     ▀   ██
+          ████▄       ▄████
+           ████   ▀   ████
+            ████     ████
+             ████▄ ▄████
+              ▀███████▀
+"@
+        
         $lbl = New-Object System.Windows.Forms.Label
-        $lbl.Text = "SYSTEM INFECTED`n`nYour files are encrypted.`nKey download: 10s"
-        $lbl.Font = New-Object System.Drawing.Font("Consolas", 28, [System.Drawing.FontStyle]::Bold)
-        $lbl.ForeColor = [System.Drawing.Color]::Red
-        $lbl.BackColor = [System.Drawing.Color]::Black
+        $lbl.Text = "$skull`n`nSYSTEM INFECTED. FILES ENCRYPTED.`nKey download: 10s"
+        $lbl.Font = New-Object System.Drawing.Font("Consolas", 20, [System.Drawing.FontStyle]::Bold)
+        $lbl.ForeColor = [System.Drawing.Color]::Black # Черный текст на розовом фоне
+        $lbl.BackColor = [System.Drawing.Color]::Transparent
         $lbl.AutoSize = $true
         $form.Controls.Add($lbl)
         
@@ -61,13 +80,14 @@ $timerCode.Add_Tick({
         $timerCountdown.Interval = 1000
         $script:timerCountdown = $timerCountdown
         $script:lbl = $lbl
+        $script:skullText = $skull
         
         $timerCountdown.Add_Tick({
             $script:count--
             if ($script:count -le 0) {
                 $script:timerCountdown.Stop()
-                $script:lbl.Text = "JOKE! :)`n`nNothing is encrypted."
-                $script:lbl.ForeColor = [System.Drawing.Color]::Lime
+                $script:lbl.Text = "$($script:skullText)`n`nJOKE! :) NOTHING IS ENCRYPTED."
+                $script:lbl.ForeColor = [System.Drawing.Color]::White # Белый текст для контраста
                 
                 $script:timerClose = New-Object System.Windows.Forms.Timer
                 $script:timerClose.Interval = 3000
@@ -77,7 +97,7 @@ $timerCode.Add_Tick({
                 })
                 $script:timerClose.Start()
             } else {
-                $script:lbl.Text = "SYSTEM INFECTED`n`nYour files are encrypted.`nKey download: $($script:count)s"
+                $script:lbl.Text = "$($script:skullText)`n`nSYSTEM INFECTED. FILES ENCRYPTED.`nKey download: $($script:count)s"
             }
         })
         $timerCountdown.Start()
