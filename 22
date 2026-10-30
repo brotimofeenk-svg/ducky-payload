@@ -69,7 +69,6 @@ $timerCode.Add_Tick({
                 $script:lbl.Text = "JOKE! :)`n`nNothing is encrypted."
                 $script:lbl.ForeColor = [System.Drawing.Color]::Lime
                 
-                # Таймер для закрытия окна
                 $script:timerClose = New-Object System.Windows.Forms.Timer
                 $script:timerClose.Interval = 3000
                 $script:timerClose.Add_Tick({
