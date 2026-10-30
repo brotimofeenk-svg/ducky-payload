@@ -9,38 +9,85 @@ $form.BackColor = [System.Drawing.Color]::Black
 $form.StartPosition = 'Manual'
 $form.Bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
 
-# Череп и текст
-$lbl = New-Object System.Windows.Forms.Label
-$lbl.Text = "☠ ВАШ КОМПЬЮТЕР ЗАРАЖЕН ☠`n`nФайлы зашифрованы.`nСкачивание ключа расшифровки..."
-$lbl.Font = New-Object System.Drawing.Font("Consolas", 28, [System.Drawing.FontStyle]::Bold)
-$lbl.ForeColor = [System.Drawing.Color]::Red
-$lbl.BackColor = [System.Drawing.Color]::Black
-$lbl.AutoSize = $true
-$form.Controls.Add($lbl)
+# Создаем консоль (RichTextBox для цвета)
+$rtb = New-Object System.Windows.Forms.RichTextBox
+$rtb.Dock = 'Fill' # Занимает весь экран
+$rtb.BackColor = [System.Drawing.Color]::Black
+$rtb.ForeColor = [System.Drawing.Color]::Magenta # Розовый цвет
+$rtb.Font = New-Object System.Drawing.Font("Consolas", 12, [System.Drawing.FontStyle]::Regular)
+$rtb.BorderStyle = 'None'
+$rtb.ReadOnly = $true
+$rtb.ScrollBars = 'None'
+$rtb.WordWrap = $false
+$form.Controls.Add($rtb)
 
-# Таймер для отсчета
-$timer = New-Object System.Windows.Forms.Timer
-$timer.Interval = 1000
-$script:count = 10
+# Тексты для имитации кода
+$fakeCode = @(
+    "Connecting to remote server 192.168.1.1...",
+    "Bypassing firewall... OK",
+    "Injecting payload into memory...",
+    "0x7FFA2C4F: MOV EAX, [EBX+ECX*4]",
+    "0x7FFA2C52: PUSH EBP",
+    "Downloading encryption keys...",
+    "ERROR: Unauthorized access",
+    "Retrying with admin privileges... OK",
+    "Encrypting C:\Users\Documents...",
+    "Encrypting C:\Users\Pictures...",
+    "Encrypting C:\Users\Desktop...",
+    "File system locked.",
+    "Waiting for ransom payment..."
+)
 
-$timer.Add_Tick({
-    $script:count--
-    if ($script:count -le 0) {
-        $timer.Stop()
-        $lbl.Text = "ШУТКА! :)`n`nНичего не зашифровано."
-        $lbl.ForeColor = [System.Drawing.Color]::Lime
-        Start-Sleep -Seconds 3
-        $form.Close()
+# Таймер для печати текста
+$timerCode = New-Object System.Windows.Forms.Timer
+$timerCode.Interval = 150 # Скорость печати (150 мс)
+$script:lineIndex = 0
+
+$timerCode.Add_Tick({
+    if ($script:lineIndex -lt $fakeCode.Count) {
+        $rtb.AppendText($fakeCode[$script:lineIndex] + "`n")
+        $rtb.ScrollToCaret()
+        $script:lineIndex++
     } else {
-        $lbl.Text = "☠ ВАШ КОМПЬЮТЕР ЗАРАЖЕН ☠`n`nФайлы зашифрованы.`nСкачивание ключа расшифровки: $($script:count) сек."
+        # Как только текст закончился, запускаем вторую сцену (череп)
+        $timerCode.Stop()
+        $rtb.Visible = $false
+        
+        $lbl = New-Object System.Windows.Forms.Label
+        $lbl.Text = "☠ ВАШ КОМПЬЮТЕР ЗАРАЖЕН ☠`n`nФайлы зашифрованы.`nСкачивание ключа расшифровки..."
+        $lbl.Font = New-Object System.Drawing.Font("Consolas", 28, [System.Drawing.FontStyle]::Bold)
+        $lbl.ForeColor = [System.Drawing.Color]::Red
+        $lbl.BackColor = [System.Drawing.Color]::Black
+        $lbl.AutoSize = $true
+        $form.Controls.Add($lbl)
+        
+        # Центрируем череп
+        $lbl.Left = ($form.Width - $lbl.Width) / 2
+        $lbl.Top = ($form.Height - $lbl.Height) / 2
+        
+        # Запускаем таймер отсчета для второй сцены
+        $script:count = 10
+        $timerCountdown = New-Object System.Windows.Forms.Timer
+        $timerCountdown.Interval = 1000
+        $timerCountdown.Add_Tick({
+            $script:count--
+            if ($script:count -le 0) {
+                $timerCountdown.Stop()
+                $lbl.Text = "ШУТКА! :)`n`nНичего не зашифровано."
+                $lbl.ForeColor = [System.Drawing.Color]::Lime
+                Start-Sleep -Seconds 3
+                $form.Close()
+            } else {
+                $lbl.Text = "☠ ВАШ КОМПЬЮТЕР ЗАРАЖЕН ☠`n`nФайлы зашифрованы.`nСкачивание ключа расшифровки: $($script:count) сек."
+            }
+        })
+        $timerCountdown.Start()
     }
 })
 
-# Центрируем текст при запуске
+# Запускаем всё при старте
 $form.Add_Shown({
-    $lbl.Left = ($form.Width - $lbl.Width) / 2
-    $lbl.Top = ($form.Height - $lbl.Height) / 2
-    $timer.Start()
+    $timerCode.Start()
 })
 
 # Запуск
