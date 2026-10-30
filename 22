@@ -1,3 +1,4 @@
+[System.Windows.Forms.Application]::EnableVisualStyles()
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
@@ -13,22 +14,17 @@ $rtb = New-Object System.Windows.Forms.RichTextBox
 $rtb.Dock = 'Fill'
 $rtb.BackColor = [System.Drawing.Color]::Black
 $rtb.ForeColor = [System.Drawing.Color]::Magenta
-$rtb.Font = New-Object System.Drawing.Font("Consolas", 14, [System.Drawing.FontStyle]::Regular)
+$rtb.Font = New-Object System.Drawing.Font("Consolas", 14)
 $rtb.BorderStyle = 'None'
 $rtb.ReadOnly = $true
 $rtb.ScrollBars = 'None'
-$rtb.WordWrap = $false
 $form.Controls.Add($rtb)
 
 $fakeCode = @(
-    "Connecting to remote server 192.168.1.1...",
+    "Connecting to remote server...",
     "Bypassing firewall... OK",
     "Injecting payload into memory...",
     "0x7FFA2C4F: MOV EAX, [EBX+ECX*4]",
-    "0x7FFA2C52: PUSH EBP",
-    "Downloading encryption keys...",
-    "ERROR: Unauthorized access",
-    "Retrying with admin privileges... OK",
     "Encrypting C:\Users\Documents...",
     "Encrypting C:\Users\Pictures...",
     "Encrypting C:\Users\Desktop...",
@@ -36,9 +32,9 @@ $fakeCode = @(
     "Waiting for ransom payment..."
 )
 
-$timerCode = New-Object System.Windows.Forms.Timer
-$timerCode.Interval = 100
 $script:lineIndex = 0
+$timerCode = New-Object System.Windows.Forms.Timer
+$timerCode.Interval = 200
 
 $timerCode.Add_Tick({
     if ($script:lineIndex -lt $fakeCode.Count) {
@@ -50,7 +46,7 @@ $timerCode.Add_Tick({
         $rtb.Visible = $false
         
         $lbl = New-Object System.Windows.Forms.Label
-        $lbl.Text = "☠ ВАШ КОМПЬЮТЕР ЗАРАЖЕН ☠`n`nФайлы зашифрованы.`nСкачивание ключа расшифровки..."
+        $lbl.Text = "SYSTEM INFECTED`n`nYour files are encrypted.`nKey download: 10s"
         $lbl.Font = New-Object System.Drawing.Font("Consolas", 28, [System.Drawing.FontStyle]::Bold)
         $lbl.ForeColor = [System.Drawing.Color]::Red
         $lbl.BackColor = [System.Drawing.Color]::Black
@@ -63,16 +59,26 @@ $timerCode.Add_Tick({
         $script:count = 10
         $timerCountdown = New-Object System.Windows.Forms.Timer
         $timerCountdown.Interval = 1000
+        $script:timerCountdown = $timerCountdown
+        $script:lbl = $lbl
+        
         $timerCountdown.Add_Tick({
             $script:count--
             if ($script:count -le 0) {
-                $timerCountdown.Stop()
-                $lbl.Text = "ШУТКА! :)`n`nНичего не зашифровано."
-                $lbl.ForeColor = [System.Drawing.Color]::Lime
-                Start-Sleep -Seconds 3
-                $form.Close()
+                $script:timerCountdown.Stop()
+                $script:lbl.Text = "JOKE! :)`n`nNothing is encrypted."
+                $script:lbl.ForeColor = [System.Drawing.Color]::Lime
+                
+                # Таймер для закрытия окна
+                $script:timerClose = New-Object System.Windows.Forms.Timer
+                $script:timerClose.Interval = 3000
+                $script:timerClose.Add_Tick({
+                    $script:timerClose.Stop()
+                    $form.Close()
+                })
+                $script:timerClose.Start()
             } else {
-                $lbl.Text = "☠ ВАШ КОМПЬЮТЕР ЗАРАЖЕН ☠`n`nФайлы зашифрованы.`nСкачивание ключа расшифровки: $($script:count) сек."
+                $script:lbl.Text = "SYSTEM INFECTED`n`nYour files are encrypted.`nKey download: $($script:count)s"
             }
         })
         $timerCountdown.Start()
