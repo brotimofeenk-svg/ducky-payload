@@ -1,83 +1,78 @@
-$code = @"
-using System;
-using System.Drawing;
-using System.Windows.Forms;
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
 
-public class FullScreenLock : Form
-{
-    private TextBox txt;
-    private Label lbl;
+$form = New-Object System.Windows.Forms.Form
+# Делаем окно без рамок, сразу на весь экран
+$form.FormBorderStyle = 'None'
+$form.WindowState = 'Maximized'
+$form.TopMost = $true
+$form.BackColor = [System.Drawing.Color]::Black
+$form.KeyPreview = $true
 
-    public FullScreenLock()
-    {
-        this.FormBorderStyle = FormBorderStyle.None;
-        this.WindowState = FormWindowState.Maximized;
-        this.TopMost = true;
-        this.BackColor = Color.Black;
-        this.KeyPreview = true;
+# Занимаем весь экран принудительно (убирает задержку анимации)
+$form.StartPosition = 'Manual'
+$form.Bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
 
-        lbl = new Label();
-        lbl.Text = "SYSTEM LOCKED\n\nENTER PASSWORD:";
-        lbl.Font = new Font("Consolas", 32, FontStyle.Bold);
-        lbl.ForeColor = Color.Red;
-        lbl.AutoSize = true;
-        this.Controls.Add(lbl);
+# Текст
+$lbl = New-Object System.Windows.Forms.Label
+$lbl.Text = "SYSTEM LOCKED`n`nENTER CODE:"
+$lbl.Font = New-Object System.Drawing.Font("Consolas", 32, [System.Drawing.FontStyle]::Bold)
+$lbl.ForeColor = [System.Drawing.Color]::Red
+$lbl.BackColor = [System.Drawing.Color]::Black
+$lbl.AutoSize = $true
+$form.Controls.Add($lbl)
 
-        txt = new TextBox();
-        txt.Font = new Font("Consolas", 32, FontStyle.Bold);
-        txt.ForeColor = Color.Red;
-        txt.BackColor = Color.Black;
-        txt.BorderStyle = BorderStyle.None;
-        txt.PasswordChar = '*';
-        txt.Width = 400;
-        this.Controls.Add(txt);
+# Поле ввода
+$txt = New-Object System.Windows.Forms.TextBox
+$txt.Font = New-Object System.Drawing.Font("Consolas", 32, [System.Drawing.FontStyle]::Bold)
+$txt.ForeColor = [System.Drawing.Color]::Red
+$txt.BackColor = [System.Drawing.Color]::Black
+$txt.BorderStyle = 'None'
+$txt.PasswordChar = '*'
+$txt.Width = 400
+$form.Controls.Add($txt)
 
-        this.Load += (s, e) => {
-            lbl.Location = new Point((this.Width - lbl.Width) / 2, (this.Height / 2) - 150);
-            txt.Location = new Point((this.Width - txt.Width) / 2, (this.Height / 2) + 50);
-            txt.Focus();
-        };
+# Таймер для мигания при ошибке (чтобы окно не зависало)
+$timer = New-Object System.Windows.Forms.Timer
+$timer.Interval = 500
+$timer.Add_Tick({
+    $lbl.ForeColor = [System.Drawing.Color]::Red
+    $lbl.BackColor = [System.Drawing.Color]::Black
+    $timer.Stop()
+})
 
-        txt.KeyDown += (s, e) => {
-            if (e.KeyCode == Keys.Enter)
-            {
-                if (txt.Text == "123")
-                {
-                    Application.Exit();
-                }
-                else
-                {
-                    txt.Clear();
-                    lbl.Text = "ACCESS DENIED\n\nENTER PASSWORD:";
-                    lbl.ForeColor = Color.White;
-                    lbl.BackColor = Color.Red;
-                    Timer t = new Timer();
-                    t.Interval = 500;
-                    t.Tick += (s2, e2) => {
-                        lbl.ForeColor = Color.Red;
-                        lbl.BackColor = Color.Black;
-                        t.Stop();
-                    };
-                    t.Start();
-                }
-            }
-        };
+# Центрируем при запуске
+$form.Add_Shown({
+    $lbl.Left = ($form.Width - $lbl.Width) / 2
+    $lbl.Top = ($form.Height / 2) - 150
+    $txt.Left = ($form.Width - $txt.Width) / 2
+    $txt.Top = ($form.Height / 2) + 50
+    $txt.Focus()
+})
 
-        // Перехватываем Alt+Tab и Alt+F4, чтобы нельзя было переключиться или закрыть
-        this.KeyDown += (s, e) => {
-            if (e.Alt && (e.KeyCode == Keys.Tab || e.KeyCode == Keys.F4))
-            {
-                e.SuppressKeyPress = true;
-            }
-        };
-
-        // Запрет закрытия через крестик
-        this.FormClosing += (s, e) => {
-            if (txt.Text != "123") e.Cancel = true;
-        };
+# Блокируем закрытие через Alt+F4
+$form.Add_FormClosing({
+    param($sender, $e)
+    if ($txt.Text -ne "123") {
+        $e.Cancel = $true
     }
-}
-"@
+})
 
-Add-Type -TypeDefinition $code -ReferencedAssemblies System.Windows.Forms, System.Drawing
-[FullScreenLock]::new().ShowDialog()
+# Проверка пароля
+$txt.Add_KeyDown({
+    param($sender, $e)
+    if ($e.KeyCode -eq 'Enter') {
+        if ($txt.Text -eq "123") {
+            $form.Close()
+        } else {
+            $txt.Clear()
+            $lbl.Text = "ACCESS DENIED`n`nENTER CODE:"
+            $lbl.ForeColor = [System.Drawing.Color]::White
+            $lbl.BackColor = [System.Drawing.Color]::Red
+            $timer.Start()
+        }
+    }
+})
+
+# Запуск программы
+[void]$form.ShowDialog()
